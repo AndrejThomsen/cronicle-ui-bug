@@ -1,0 +1,67 @@
+services:
+  cronicle-setup:
+    image: "cronicle_baseimage"
+    platform: "linux/amd64"
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+    networks:
+      cronicle-cluster: { }
+    hostname: "cronicle-primary"
+    restart: "no"
+    expose:
+      - "3014/udp"
+      - "5601"
+    volumes:
+      - "./conf/:/opt/cronicle/conf:ro"
+      - "./data/:/opt/cronicle/data"
+    command: "/opt/cronicle/bin/control.sh setup"
+  cronicle-primary:
+    image: "cronicle_baseimage"
+    depends_on:
+      - "cronicle-setup"
+    platform: "linux/amd64"
+    networks:
+      cronicle-cluster: { }
+    hostname: "cronicle-primary"
+    ports:
+      - "5601:5601"
+    expose:
+      - "3014/udp"
+    volumes:
+      - "./conf/:/opt/cronicle/conf:ro"
+      - "./data/:/opt/cronicle/data"
+    command: "/opt/cronicle/bin/control.sh start"
+  cronicle-backup:
+    image: "cronicle_baseimage"
+    depends_on:
+      - "cronicle-setup"
+    platform: "linux/amd64"
+    networks:
+      cronicle-cluster: { }
+    hostname: "cronicle-backup"
+    ports:
+      - "5603:5601"
+    expose:
+      - "3014/udp"
+    volumes:
+      - "./conf/:/opt/cronicle/conf:ro"
+      - "./data/:/opt/cronicle/data"
+    command: "/opt/cronicle/bin/control.sh start"
+  cronicle-worker:
+    image: "cronicle_baseimage"
+    depends_on:
+      - "cronicle-primary"
+    platform: "linux/amd64"
+    networks:
+      cronicle-cluster: { }
+    hostname: "cronicle-worker"
+    expose:
+      - "3014/udp"
+      - "5601"
+    volumes:
+      - "./conf/:/opt/cronicle/conf:ro"
+      - "./data/:/opt/cronicle/data"
+    command: "/opt/cronicle/bin/control.sh start"
+networks:
+  cronicle-cluster:
